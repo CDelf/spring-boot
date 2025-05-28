@@ -42,13 +42,13 @@ public class VilleControleur {
         boolean idExiste = villes.stream()
                 .anyMatch(v -> v.getId() == ville.getId());
         if(idExiste) {
-            return ResponseEntity.status(404).body("Cet id existe déjà");
+            return ResponseEntity.badRequest().body("Cet id existe déjà");
         }
         // Vérifie si le nom existe déjà
         boolean nomExiste = villes.stream()
                         .anyMatch(v -> v.getNom().equalsIgnoreCase(ville.getNom()));
         if(nomExiste) {
-            return ResponseEntity.status(404).body("Une ville de même nom existe déjà");
+            return ResponseEntity.badRequest().body("Une ville de même nom existe déjà");
         }
         // Si aucun doublon, ajoute la ville
         villes.add(ville);
@@ -57,24 +57,28 @@ public class VilleControleur {
 
     @PutMapping("/{id}")
     public ResponseEntity<String> updateVille(@PathVariable int id, @RequestBody Ville ville) {
-       for(Ville v : villes) {
-           if(v.getId() == id) {
-               v.setNom(ville.getNom());
-               v.setNbHabitants(ville.getNbHabitants());
-               return ResponseEntity.ok("Ville modifiée avec succès");
-           }
-       }
-       return ResponseEntity.status(404).body("Ville introuvable");
+        Optional<Ville> villeAModifier = villes.stream()
+                .filter(v -> v.getId() == id)
+                .findAny();
+        if (villeAModifier.isPresent()) {
+            villeAModifier.get().setNom(ville.getNom());
+            villeAModifier.get().setNbHabitants(ville.getNbHabitants());
+            return ResponseEntity.ok("Ville modifiée avec succès");
+        } else {
+            return ResponseEntity.status(404).body("Ville introuvable");
+        }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteVille(@PathVariable int id) {
-        for(Ville v : villes) {
-            if(v.getId() == id) {
-                villes.remove(v);
-                return ResponseEntity.ok("Ville supprimée");
-            }
+        Optional<Ville> villeASupprimer = villes.stream()
+                .filter(v -> v.getId() == id)
+                .findAny();
+        if(villeASupprimer.isPresent()) {
+            villes.remove(villeASupprimer.get());
+            return ResponseEntity.ok("Ville supprimée avec succès");
+        } else {
+            return ResponseEntity.status(404).body("Ville introuvable");
         }
-        return ResponseEntity.status(404).body("Ville introuvable");
     }
 }
