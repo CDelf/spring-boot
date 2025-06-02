@@ -1,11 +1,14 @@
 package fr.diginamic.hello.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 
+@Entity
 public class Ville {
 
-
-    @Positive(message = "L'id doit être strictement positif.")
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     @NotBlank(message = "Le nom ne doit pas être vide.")
@@ -15,13 +18,19 @@ public class Ville {
     @Min(value = 1, message = "Le nombre d'habitants doit être au moins égal à 1.")
     private int nbHabitants;
 
+    @NotNull(message = "Le département est obligatoire")
+    @ManyToOne
+    @JoinColumn(name="id_departement", nullable = false)
+    @JsonBackReference
+    private Departement departement;
+
     public Ville() {
     }
 
-    public Ville(int id, String nom, int nbHabitants) {
-        this.id = id;
+    public Ville(String nom, int nbHabitants, Departement departement) {
         this.nom = nom;
         this.nbHabitants = nbHabitants;
+        this.departement = departement;
     }
 
     public int getId() {
@@ -46,5 +55,13 @@ public class Ville {
 
     public void setNbHabitants(int nbHabitants) {
         this.nbHabitants = nbHabitants;
+    }
+
+    public Departement getDepartement() {
+        return departement;
+    }
+
+    public void setDepartement(Departement departement) {
+        this.departement = departement;
     }
 }

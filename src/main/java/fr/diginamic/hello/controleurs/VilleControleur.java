@@ -1,6 +1,8 @@
 package fr.diginamic.hello.controleurs;
 
+import fr.diginamic.hello.dao.VilleDao;
 import fr.diginamic.hello.models.Ville;
+import fr.diginamic.hello.services.VilleService;
 import jakarta.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,9 +12,9 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/villes")
@@ -21,32 +23,60 @@ public class VilleControleur {
     @Autowired
     private Validator validator;
 
-    private List<Ville> villes = new ArrayList<>(List.of(
-            new Ville(1, "Paris", 2148000),
-            new Ville(2, "Lyon", 513000),
-            new Ville(3, "Marseille", 861000),
-            new Ville(4, "Toulouse", 493000),
-            new Ville(5, "Nice", 342000)));
+    @Autowired
+    private VilleDao villeDao;
+
+    @Autowired
+    private VilleService villeService;
+
 
     @GetMapping
     public List<Ville> getVilles() {
-        return villes;
+        return villeDao.findAll();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/id/{id}")
     public ResponseEntity<?> getVilleById(@PathVariable int id) {
-        Optional<Ville> villeATrouver = villes.stream()
-                .filter(v -> v.getId() == id)
-                .findAny();
-        if(villeATrouver.isPresent()) {
-            return ResponseEntity.ok(villeATrouver.get());
+        Ville villeATrouver = villeDao.findById(id);
+        if (villeATrouver != null) {
+            return ResponseEntity.ok(villeATrouver);
         } else {
             return ResponseEntity.status(404).body("ville introuvable");
         }
     }
 
+    @GetMapping("/nom/{nom}")
+    public ResponseEntity<?> getVilleByNom(@PathVariable String nom) {
+        Ville villeATrouver = villeDao.findByNom(nom);
+        if (villeATrouver != null) {
+            return ResponseEntity.ok(villeATrouver);
+        } else {
+            return ResponseEntity.status(404).body("Ville introuvable");
+        }
+    }
+
+    @GetMapping("/departement/{id}/{n}")
+    public ResponseEntity<?> getNTopVillesDepartement(@PathVariable int id, @PathVariable int n) {
+        List<Ville> topVilles = villeDao.findTopNVillesByDepartement(id, n);
+        if(!topVilles.isEmpty()) {
+            return ResponseEntity.ok(topVilles);
+        } else {
+            return ResponseEntity.badRequest().body("La requête ne retourne aucun résultat, vérifiez les paramètres");
+        }
+    }
+
+    @GetMapping("departement/{id}/{min}/{max}")
+    public ResponseEntity<?> getByDepartementAndPopRange(@PathVariable int id, @PathVariable int min, @PathVariable int max) {
+        List<Ville> villesCorrespondantes = villeDao.findByDepartementAndPopulationRange(id, min, max);
+            if(!villesCorrespondantes.isEmpty()) {
+                return ResponseEntity.ok(villesCorrespondantes);
+            } else {
+                return ResponseEntity.badRequest().body("La requête ne retourne aucun résultat, vérifiez les paramètres");
+            }
+        }
+
     @PostMapping
-    public ResponseEntity<String> insertVille(@Valid @RequestBody Ville ville, BindingResult result) {
+    public ResponseEntity<?> insertVille(@Valid @RequestBody Ville ville, BindingResult result) {
         // Vérification des contraintes
         if (result.hasErrors()) {
             String errors = result.getFieldErrors().stream()
@@ -56,21 +86,12 @@ public class VilleControleur {
             return ResponseEntity.badRequest().body(errors);
         }
 
-        // Vérifie si l'id existe déjà
-        boolean idExiste = villes.stream()
-                .anyMatch(v -> v.getId() == ville.getId());
-        if(idExiste) {
-            return ResponseEntity.badRequest().body("Cet id existe déjà");
-        }
-        // Vérifie si le nom existe déjà
-        boolean nomExiste = villes.stream()
-                        .anyMatch(v -> v.getNom().equalsIgnoreCase(ville.getNom()));
-        if(nomExiste) {
-            return ResponseEntity.badRequest().body("Une ville de même nom existe déjà");
-        }
-        // Si aucun doublon ou erreur, ajoute la ville
-        villes.add(ville);
-        return ResponseEntity.ok("Ville ajoutée avec succès");
+        List<Ville> villes = villeService.insertVille(ville);
+        // Réponse : message confirmation + liste villes
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Ville ajoutée avec succès");
+        response.put("villes", villes);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
@@ -86,28 +107,32 @@ public class VilleControleur {
             return ResponseEntity.badRequest().body(errors);
         }
 
-        // Mise à jour de la ville si elle existe
-        Optional<Ville> villeAModifier = villes.stream()
-                .filter(v -> v.getId() == id)
-                .findAny();
-        if (villeAModifier.isPresent()) {
-            Ville v = villeAModifier.get();
-            v.setNom(ville.getNom());
-            v.setNbHabitants(ville.getNbHabitants());
-            return ResponseEntity.ok("Ville modifiée avec succès");
+        Ville villeAModifier = villeDao.findById(id);
+        if (villeAModifier != null) {
+            List<Ville> villes = villeService.modifierVille(id, ville);
+            // Réponse : message confirmation + liste villes
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Ville modifiée avec succès");
+            response.put("villes", villes);
+            return ResponseEntity.ok(response);
         } else {
             return ResponseEntity.status(404).body("Ville introuvable");
         }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteVille(@PathVariable int id) {
-        Optional<Ville> villeASupprimer = villes.stream()
-                .filter(v -> v.getId() == id)
-                .findAny();
-        if(villeASupprimer.isPresent()) {
-            villes.remove(villeASupprimer.get());
-            return ResponseEntity.ok("Ville supprimée avec succès");
+    public ResponseEntity<?> deleteVille(@PathVariable int id) {
+
+        Ville villeASupprimer = villeDao.findById(id);
+        if (villeASupprimer != null) {
+            List<Ville> villes = villeService.supprimerVille(id);
+
+            // Réponse : message confirmation + liste villes
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Ville supprimée avec succès");
+            response.put("villes", villes);
+            return ResponseEntity.ok(response);
+
         } else {
             return ResponseEntity.status(404).body("Ville introuvable");
         }
