@@ -25,12 +25,14 @@ public interface VilleRepository extends JpaRepository<Ville, Integer> {
     List<Ville> findByNbHabitantsBetweenOrderByNbHabitantsDesc(int min, int max);
 
     // Villes d'un département, population > min
-    @Query("SELECT v FROM Ville v WHERE v.departement.id = :dptId AND v.nbHabitants > :min ORDER BY v.nbHabitants DESC")
-    List<Ville> findByDepartementIdAndMinPopulation(@Param("dptId") int dptId, @Param("min") int min);
+    List<Ville> findByDepartementIdAndNbHabitantsGreaterThanOrderByNbHabitantsDesc(int id, int min);
+//    @Query("SELECT v FROM Ville v WHERE v.departement.id = :dptId AND v.nbHabitants > :min ORDER BY v.nbHabitants DESC")
+//    List<Ville> findByDepartementIdAndMinPopulation(@Param("dptId") int dptId, @Param("min") int min);
 
     // Villes d'un département, population entre min et max
-    @Query("SELECT v FROM Ville v WHERE v.departement.id = :dptId AND v.nbHabitants BETWEEN :min AND :max ORDER BY v.nbHabitants DESC")
-    List<Ville> findByDepartementIdAndPopulationRange(@Param("dptId") int dptId, @Param("min") int min, @Param("max") int max);
+    List<Ville> findByDepartementIdAndNbHabitantsBetweenOrderByNbHabitantsDesc(int id, int min, int max);
+//    @Query("SELECT v FROM Ville v WHERE v.departement.id = :dptId AND v.nbHabitants BETWEEN :min AND :max ORDER BY v.nbHabitants DESC")
+//    List<Ville> findByDepartementIdAndPopulationRange(@Param("dptId") int dptId, @Param("min") int min, @Param("max") int max);
 
     // Toutes les villes d’un département, triées desc (gestion du N dans le contrôleur)
     @Query("SELECT v FROM Ville v WHERE v.departement.id = :dptId ORDER BY v.nbHabitants DESC")

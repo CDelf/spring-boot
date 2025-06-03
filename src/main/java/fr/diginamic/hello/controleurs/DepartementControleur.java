@@ -1,5 +1,8 @@
 package fr.diginamic.hello.controleurs;
 
+
+import fr.diginamic.hello.dtos.DepartementDto;
+import fr.diginamic.hello.dtos.DepartementMapper;
 import fr.diginamic.hello.models.Departement;
 import fr.diginamic.hello.repos.DepartementRepository;
 import fr.diginamic.hello.services.DepartementService;
@@ -10,9 +13,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/departements")
@@ -24,58 +27,72 @@ public class DepartementControleur {
     @Autowired
     private DepartementService departementService;
 
+    @Autowired
+    private DepartementMapper departementMapper;
+
     @GetMapping
-    public List<Departement> getDepartements() {
-        return dptRepository.findAll();
+    public List<DepartementDto> getDepartements() {
+        return dptRepository.findAll().stream()
+                .map(departementMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @GetMapping("/id/{id}")
     public ResponseEntity<?> getDepartementById(@PathVariable int id) {
-        Departement dptATrouver = dptRepository.findById(id).orElse(null);
-        return ResponseEntityService.returnResponse(dptATrouver, "Département");
+        Departement dpt = dptRepository.findById(id).orElse(null);
+        return ResponseEntityService.returnResponse(
+                dpt != null ? departementMapper.toDto(dpt) : null, "Département");
     }
 
     @GetMapping("/nom/{nom}")
     public ResponseEntity<?> getDepartementByNom(@PathVariable String nom) {
-        Departement dptATrouver = dptRepository.findByNom(nom);
-        return ResponseEntityService.returnResponse(dptATrouver, "Département");
+        Departement dpt = dptRepository.findByNom(nom);
+        return ResponseEntityService.returnResponse(
+                dpt != null ? departementMapper.toDto(dpt) : null, "Département");
     }
 
     @GetMapping("/code/{code}")
     public ResponseEntity<?> getDepartementByCode(@PathVariable String code) {
-        Departement dptATrouver = dptRepository.findByCode(code);
-        return ResponseEntityService.returnResponse(dptATrouver, "Département");
+        Departement dpt = dptRepository.findByCode(code);
+        return ResponseEntityService.returnResponse(
+                dpt != null ? departementMapper.toDto(dpt) : null, "Département");
     }
 
     @PostMapping
-    public ResponseEntity<?> insertDepartement(@Valid @RequestBody Departement dpt, BindingResult result) {
+    public ResponseEntity<?> insertDepartement(@Valid @RequestBody DepartementDto dto, BindingResult result) {
         if (result.hasErrors()) {
             String erreurs = result.getFieldErrors().stream()
                     .map(e -> e.getField() + " : " + e.getDefaultMessage())
-                    .reduce("", (s1, s2) -> s1 + s2 + "\n");
+                    .collect(Collectors.joining("\n"));
             return ResponseEntity.badRequest().body(erreurs);
         }
 
-        List<Departement> dpts = departementService.insertDpt(dpt);
-        // Réponse : message de confirmation + retourne liste des départements en base
+        Departement dpt = departementMapper.toBean(dto);
+        List<DepartementDto> dpts = departementService.insertDpt(dpt).stream()
+                .map(departementMapper::toDto)
+                .toList();
+
         return ResponseEntity.ok(Map.of(
                 "message", "Département ajouté avec succès",
                 "departements", dpts));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateDepartement(@PathVariable int id, @Valid @RequestBody Departement dpt, BindingResult result) {
+    public ResponseEntity<?> updateDepartement(@PathVariable int id, @Valid @RequestBody DepartementDto dto, BindingResult result) {
         if (result.hasErrors()) {
             String erreurs = result.getFieldErrors().stream()
                     .map(e -> e.getField() + " : " + e.getDefaultMessage())
-                    .reduce("", (s1, s2) -> s1 + s2 + "\n");
+                    .collect(Collectors.joining("\n"));
             return ResponseEntity.badRequest().body(erreurs);
         }
 
-        Departement dptAModifier = dptRepository.findById(id).orElse(null);
-        if (dptAModifier != null) {
-            List<Departement> dpts = departementService.updateDpt(id, dpt);
-            // Réponse : message de confirmation + retourne liste des départements en base
+        Departement existing = dptRepository.findById(id).orElse(null);
+        if (existing != null) {
+            Departement updatedEntity = departementMapper.toBean(dto);
+            List<DepartementDto> dpts = departementService.updateDpt(id, updatedEntity).stream()
+                    .map(departementMapper::toDto)
+                    .toList();
+
             return ResponseEntity.ok(Map.of(
                     "message", "Département modifié avec succès",
                     "departements", dpts));
@@ -86,14 +103,15 @@ public class DepartementControleur {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteDepartement(@PathVariable int id) {
-        Departement dptASupprimer = dptRepository.findById(id).orElse(null);
-        if (dptASupprimer != null) {
-            List<Departement> dpts = departementService.deleteDpt(id);
-            // Réponse : message de confirmation + retourne liste des départements en base
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Département supprimé avec succès");
-            response.put("departements", dpts);
-            return ResponseEntity.ok(response);
+        Departement dpt = dptRepository.findById(id).orElse(null);
+        if (dpt != null) {
+            List<DepartementDto> dpts = departementService.deleteDpt(id).stream()
+                    .map(departementMapper::toDto)
+                    .toList();
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Département supprimé avec succès",
+                    "departements", dpts));
         } else {
             return ResponseEntity.status(404).body("Département introuvable");
         }
