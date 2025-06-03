@@ -1,8 +1,9 @@
 package fr.diginamic.hello.controleurs;
 
-import fr.diginamic.hello.dao.DepartementDao;
 import fr.diginamic.hello.models.Departement;
+import fr.diginamic.hello.repos.DepartementRepository;
 import fr.diginamic.hello.services.DepartementService;
+import fr.diginamic.hello.services.ResponseEntityService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,34 +19,32 @@ import java.util.Map;
 public class DepartementControleur {
 
     @Autowired
-    private DepartementDao departementDao;
+    private DepartementRepository dptRepository;
 
     @Autowired
     private DepartementService departementService;
 
     @GetMapping
     public List<Departement> getDepartements() {
-        return departementDao.findAll();
+        return dptRepository.findAll();
     }
 
     @GetMapping("/id/{id}")
     public ResponseEntity<?> getDepartementById(@PathVariable int id) {
-        Departement dptATrouver = departementDao.findById(id);
-        if (dptATrouver != null) {
-            return ResponseEntity.ok(dptATrouver);
-        } else {
-            return ResponseEntity.status(404).body("département introuvable");
-        }
+        Departement dptATrouver = dptRepository.findById(id).orElse(null);
+        return ResponseEntityService.returnResponse(dptATrouver, "Département");
     }
 
     @GetMapping("/nom/{nom}")
     public ResponseEntity<?> getDepartementByNom(@PathVariable String nom) {
-        Departement dptATrouver = departementDao.findByNom(nom);
-        if (dptATrouver != null) {
-            return ResponseEntity.ok(dptATrouver);
-        } else {
-            return ResponseEntity.status(404).body("département introuvable");
-        }
+        Departement dptATrouver = dptRepository.findByNom(nom);
+        return ResponseEntityService.returnResponse(dptATrouver, "Département");
+    }
+
+    @GetMapping("/code/{code}")
+    public ResponseEntity<?> getDepartementByCode(@PathVariable String code) {
+        Departement dptATrouver = dptRepository.findByCode(code);
+        return ResponseEntityService.returnResponse(dptATrouver, "Département");
     }
 
     @PostMapping
@@ -59,10 +58,9 @@ public class DepartementControleur {
 
         List<Departement> dpts = departementService.insertDpt(dpt);
         // Réponse : message de confirmation + retourne liste des départements en base
-        Map<String, Object> response = new HashMap<>();
-        response.put("message", "Département ajouté avec succès");
-        response.put("departements", dpts);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of(
+                "message", "Département ajouté avec succès",
+                "departements", dpts));
     }
 
     @PutMapping("/{id}")
@@ -74,14 +72,13 @@ public class DepartementControleur {
             return ResponseEntity.badRequest().body(erreurs);
         }
 
-        Departement dptAModifier = departementDao.findById(id);
+        Departement dptAModifier = dptRepository.findById(id).orElse(null);
         if (dptAModifier != null) {
             List<Departement> dpts = departementService.updateDpt(id, dpt);
             // Réponse : message de confirmation + retourne liste des départements en base
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Département modifié avec succès");
-            response.put("departements", dpts);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Département modifié avec succès",
+                    "departements", dpts));
         } else {
             return ResponseEntity.status(404).body("Département introuvable");
         }
@@ -89,7 +86,7 @@ public class DepartementControleur {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteDepartement(@PathVariable int id) {
-        Departement dptASupprimer = departementDao.findById(id);
+        Departement dptASupprimer = dptRepository.findById(id).orElse(null);
         if (dptASupprimer != null) {
             List<Departement> dpts = departementService.deleteDpt(id);
             // Réponse : message de confirmation + retourne liste des départements en base

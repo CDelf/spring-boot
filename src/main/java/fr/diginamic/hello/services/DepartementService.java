@@ -1,7 +1,7 @@
 package fr.diginamic.hello.services;
 
-import fr.diginamic.hello.dao.DepartementDao;
 import fr.diginamic.hello.models.Departement;
+import fr.diginamic.hello.repos.DepartementRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,26 +11,27 @@ import java.util.List;
 public class DepartementService {
 
     @Autowired
-    private DepartementDao departementDao;
+    private DepartementRepository dptRepository;
 
     public List<Departement> insertDpt(Departement dpt) {
-        if (departementDao.findByNom(dpt.getNom()) != null) {
+        if (dptRepository.findByNom(dpt.getNom()) != null) {
             throw new IllegalArgumentException("Un département avec ce nom existe déjà.");
         }
-        departementDao.saveDpt(dpt);
-        return departementDao.findAll();
+        dptRepository.save(dpt);
+        return dptRepository.findAll();
     }
-
     public List<Departement> updateDpt(int id, Departement dpt) {
-        if (departementDao.findById(id) == null) {
-            throw new IllegalArgumentException("Le département n'a pas été trouvé.");
+        Departement dptAModifier = dptRepository.findById(id).orElse(null);
+        if(dptAModifier != null) {
+            dptAModifier.setNom(dpt.getNom());
+            dptAModifier.setCode(dpt.getCode());
+            dptRepository.save(dptAModifier);
         }
-        departementDao.updateDpt(id, dpt);
-        return departementDao.findAll();
+        return dptRepository.findAll();
     }
 
     public List<Departement> deleteDpt(int id) {
-        departementDao.deleteDpt(id);
-        return departementDao.findAll();
+        dptRepository.deleteById(id);
+        return dptRepository.findAll();
     }
 }

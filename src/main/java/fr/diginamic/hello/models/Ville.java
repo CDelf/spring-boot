@@ -8,19 +8,19 @@ import jakarta.validation.constraints.*;
 public class Ville {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
     @NotBlank(message = "Le nom ne doit pas être vide.")
     @Size(min = 2, message = "Le nom doit contenir au moins 2 caractères.")
     private String nom;
 
+    @Column(name="nb_habitants")
     @Min(value = 1, message = "Le nombre d'habitants doit être au moins égal à 1.")
     private int nbHabitants;
 
     @NotNull(message = "Le département est obligatoire")
     @ManyToOne
-    @JoinColumn(name="id_departement", nullable = false)
+    @JoinColumn(name="id_dept", nullable = false)
     @JsonBackReference
     private Departement departement;
 

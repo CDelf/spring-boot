@@ -1,40 +1,46 @@
 package fr.diginamic.hello.services;
 
-import fr.diginamic.hello.dao.DepartementDao;
-import fr.diginamic.hello.dao.VilleDao;
-import fr.diginamic.hello.models.Departement;
 import fr.diginamic.hello.models.Ville;
+import fr.diginamic.hello.repos.VilleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
+import java.util.Optional;
 
 @Service
 public class VilleService {
 
     @Autowired
-    private VilleDao villeDao;
-    @Autowired
-    private DepartementDao departementDao;
+    private VilleRepository villeRepo;
 
-    // TODO : vérifications à ajouter
-    public List<Ville> insertVille(Ville ville) {
-        Departement dpt = ville.getDepartement();
-        if (dpt == null || departementDao.findById(dpt.getId()) == null) {
-            throw new IllegalArgumentException("Département invalide ou inexistant.");
+    // Retour un nombre n de résultats pour le TOP ville
+    public List<Ville> findTopNVilles(int dptId, int n) {
+        return villeRepo.findByDepartementIdOrderByNbHabitantsDesc(dptId)
+                .stream().limit(n).toList();
+    }
+
+    // Gestion des retours de listes après les save et update
+    public List<Ville> save(Ville ville) {
+        villeRepo.save(ville);
+        return villeRepo.findAll();
+    }
+
+    public List<Ville> update(int id, Ville villeModifiee) {
+        Optional<Ville> villeOpt = villeRepo.findById(id);
+        if (villeOpt.isPresent()) {
+            Ville ville = villeOpt.get();
+            ville.setNom(villeModifiee.getNom());
+            ville.setNbHabitants(villeModifiee.getNbHabitants());
+            ville.setDepartement(villeModifiee.getDepartement());
+            villeRepo.save(ville);
         }
-        villeDao.saveVille(ville);
-        return villeDao.findAll();
+        return villeRepo.findAll();
     }
 
-    public List<Ville> modifierVille(int id, Ville villeModifiee) {
-          villeDao.updateVille(id, villeModifiee);
-          return villeDao.findAll();
-    }
-
-    public List<Ville> supprimerVille(int id) {
-          villeDao.deleteVille(id);
-          return villeDao.findAll();
+    public List<Ville> delete(int id) {
+        villeRepo.deleteById(id);
+        return villeRepo.findAll();
     }
 }
