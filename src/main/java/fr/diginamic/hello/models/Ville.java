@@ -15,7 +15,7 @@ public class Ville {
     private String nom;
 
     @Column(name="nb_habitants")
-    @Min(value = 1, message = "Le nombre d'habitants doit être au moins égal à 1.")
+    @Min(value = 10, message = "Le nombre d'habitants ne peut pas être inférieur à 10.")
     private int nbHabitants;
 
     @NotNull(message = "Le département est obligatoire")

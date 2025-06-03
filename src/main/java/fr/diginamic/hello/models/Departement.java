@@ -2,6 +2,7 @@ package fr.diginamic.hello.models;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
 import java.util.HashSet;
@@ -13,9 +14,13 @@ public class Departement {
     @Id
     private int id;
 
+    @NotBlank(message = "Le nom du département est obligatoire.")
+    @Min(value = 3, message = "La nom du département doit avoir au moins 3 lettres")
+    @Column(nullable = false, unique = true)
     private String nom;
 
     @NotBlank(message = "Le numéro de département est obligatoire")
+    @Min(value = 10, message = "Le code département doit avoir au moins 2 caractères")
     @Column(nullable = false, unique = true)
     private String code;
 
@@ -39,6 +44,10 @@ public class Departement {
 
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getNom() {

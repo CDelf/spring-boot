@@ -26,7 +26,8 @@ public class VilleMapper {
         ville.setNom(dto.getNom());
         ville.setNbHabitants(dto.getNbHabitants());
 
-        Departement departement = departementRepository.findByCode(dto.getCodeDepartement());
+        Departement departement = departementRepository.findByCode(dto.getCodeDepartement())
+                .orElseThrow(() -> new IllegalArgumentException("Code départemenent invalide : " + dto.getCodeDepartement()));
         ville.setDepartement(departement);
 
         return ville;

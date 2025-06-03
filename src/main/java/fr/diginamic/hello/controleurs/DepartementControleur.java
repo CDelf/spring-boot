@@ -3,26 +3,24 @@ package fr.diginamic.hello.controleurs;
 
 import fr.diginamic.hello.dtos.DepartementDto;
 import fr.diginamic.hello.dtos.DepartementMapper;
+import fr.diginamic.hello.exceptions.FunctionalException;
 import fr.diginamic.hello.models.Departement;
 import fr.diginamic.hello.repos.DepartementRepository;
 import fr.diginamic.hello.services.DepartementService;
-import fr.diginamic.hello.services.ResponseEntityService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/departements")
 public class DepartementControleur {
 
     @Autowired
-    private DepartementRepository dptRepository;
+    private DepartementRepository departementRepository;
 
     @Autowired
     private DepartementService departementService;
@@ -32,88 +30,59 @@ public class DepartementControleur {
 
     @GetMapping
     public List<DepartementDto> getDepartements() {
-        return dptRepository.findAll().stream()
+        return departementRepository.findAll().stream()
                 .map(departementMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @GetMapping("/id/{id}")
-    public ResponseEntity<?> getDepartementById(@PathVariable int id) {
-        Departement dpt = dptRepository.findById(id).orElse(null);
-        return ResponseEntityService.returnResponse(
-                dpt != null ? departementMapper.toDto(dpt) : null, "Département");
+    public ResponseEntity<?> getDepartementById(@PathVariable int id) throws FunctionalException {
+        Departement dpt = departementService.getById(id);
+        return ResponseEntity.ok(departementMapper.toDto(dpt));
     }
 
     @GetMapping("/nom/{nom}")
-    public ResponseEntity<?> getDepartementByNom(@PathVariable String nom) {
-        Departement dpt = dptRepository.findByNom(nom);
-        return ResponseEntityService.returnResponse(
-                dpt != null ? departementMapper.toDto(dpt) : null, "Département");
+    public ResponseEntity<?> getDepartementByNom(@PathVariable String nom) throws FunctionalException {
+        Departement dpt = departementService.getByNom(nom);
+        return ResponseEntity.ok(departementMapper.toDto(dpt));
     }
 
     @GetMapping("/code/{code}")
-    public ResponseEntity<?> getDepartementByCode(@PathVariable String code) {
-        Departement dpt = dptRepository.findByCode(code);
-        return ResponseEntityService.returnResponse(
-                dpt != null ? departementMapper.toDto(dpt) : null, "Département");
+    public ResponseEntity<?> getDepartementByCode(@PathVariable String code) throws FunctionalException {
+        Departement dpt = departementService.getByCode(code);
+        return ResponseEntity.ok(departementMapper.toDto(dpt));
     }
 
     @PostMapping
-    public ResponseEntity<?> insertDepartement(@Valid @RequestBody DepartementDto dto, BindingResult result) {
-        if (result.hasErrors()) {
-            String erreurs = result.getFieldErrors().stream()
-                    .map(e -> e.getField() + " : " + e.getDefaultMessage())
-                    .collect(Collectors.joining("\n"));
-            return ResponseEntity.badRequest().body(erreurs);
-        }
-
+    public ResponseEntity<?> insertDepartement(@Valid @RequestBody DepartementDto dto) throws FunctionalException {
         Departement dpt = departementMapper.toBean(dto);
-        List<DepartementDto> dpts = departementService.insertDpt(dpt).stream()
-                .map(departementMapper::toDto)
-                .toList();
-
+        List<DepartementDto> dtos = departementService.insertDpt(dpt).stream()
+                .map(departementMapper::toDto).toList();
         return ResponseEntity.ok(Map.of(
                 "message", "Département ajouté avec succès",
-                "departements", dpts));
+                "départements", dtos
+        ));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateDepartement(@PathVariable int id, @Valid @RequestBody DepartementDto dto, BindingResult result) {
-        if (result.hasErrors()) {
-            String erreurs = result.getFieldErrors().stream()
-                    .map(e -> e.getField() + " : " + e.getDefaultMessage())
-                    .collect(Collectors.joining("\n"));
-            return ResponseEntity.badRequest().body(erreurs);
-        }
-
-        Departement existing = dptRepository.findById(id).orElse(null);
-        if (existing != null) {
-            Departement updatedEntity = departementMapper.toBean(dto);
-            List<DepartementDto> dpts = departementService.updateDpt(id, updatedEntity).stream()
-                    .map(departementMapper::toDto)
-                    .toList();
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Département modifié avec succès",
-                    "departements", dpts));
-        } else {
-            return ResponseEntity.status(404).body("Département introuvable");
-        }
+    public ResponseEntity<?> updateDepartement(@PathVariable int id, @Valid @RequestBody DepartementDto dto) throws FunctionalException {
+        Departement updatedDpt = departementMapper.toBean(dto);
+        updatedDpt.setId(id);
+        List<DepartementDto> dtos = departementService.updateDpt(id, updatedDpt).stream()
+                .map(departementMapper::toDto).toList();
+        return ResponseEntity.ok(Map.of(
+                "message", "Département modifié avec succès",
+                "départements", dtos
+        ));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteDepartement(@PathVariable int id) {
-        Departement dpt = dptRepository.findById(id).orElse(null);
-        if (dpt != null) {
-            List<DepartementDto> dpts = departementService.deleteDpt(id).stream()
-                    .map(departementMapper::toDto)
-                    .toList();
-
-            return ResponseEntity.ok(Map.of(
-                    "message", "Département supprimé avec succès",
-                    "departements", dpts));
-        } else {
-            return ResponseEntity.status(404).body("Département introuvable");
-        }
+    public ResponseEntity<?> deleteDepartement(@PathVariable int id) throws FunctionalException {
+        List<Departement> updatedDpts = departementService.deleteDpt(id);
+        List<DepartementDto> dtos = updatedDpts.stream().map(departementMapper::toDto).toList();
+        return ResponseEntity.ok(Map.of(
+                "message", "Département supprimé avec succès",
+                "départements", dtos
+        ));
     }
 }

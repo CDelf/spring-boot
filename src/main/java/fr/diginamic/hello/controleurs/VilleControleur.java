@@ -2,9 +2,9 @@ package fr.diginamic.hello.controleurs;
 
 import fr.diginamic.hello.dtos.VilleDto;
 import fr.diginamic.hello.dtos.VilleMapper;
+import fr.diginamic.hello.exceptions.FunctionalException;
 import fr.diginamic.hello.models.Ville;
 import fr.diginamic.hello.repos.VilleRepository;
-import fr.diginamic.hello.services.ResponseEntityService;
 import fr.diginamic.hello.services.VilleService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/villes")
@@ -36,73 +35,61 @@ public class VilleControleur {
     public List<VilleDto> getVilles() {
         return villeRepository.findAll().stream()
                 .map(villeMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @GetMapping("/id/{id}")
-    public ResponseEntity<?> getVilleById(@PathVariable int id) {
-        return villeRepository.findById(id)
-                .map(villeMapper::toDto)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(404).body("Ville introuvable"));
+    public ResponseEntity<?> getVilleById(@PathVariable int id) throws FunctionalException {
+        Ville ville = villeService.getById(id);
+        return ResponseEntity.ok(villeMapper.toDto(ville));
     }
 
     @GetMapping("/nom/{nom}")
-    public ResponseEntity<?> getVilleByNom(@PathVariable String nom) {
-        Ville ville = villeRepository.findByNom(nom);
-        return ville != null ? ResponseEntity.ok(villeMapper.toDto(ville))
-                : ResponseEntity.status(404).body("Ville introuvable");
+    public ResponseEntity<?> getVilleByNom(@PathVariable String nom) throws FunctionalException {
+        Ville ville = villeService.getByNom(nom);
+        return ResponseEntity.ok(villeMapper.toDto(ville));
     }
 
     @GetMapping("/prefix/{prefix}")
-    public ResponseEntity<?> findByPrefix(@PathVariable String prefix) {
-        List<VilleDto> dtos = villeRepository.findByNomStartingWithIgnoreCase(prefix)
+    public ResponseEntity<?> findByPrefix(@PathVariable String prefix) throws FunctionalException {
+        List<VilleDto> dtoList = villeService.getByPrefix(prefix)
                 .stream().map(villeMapper::toDto).toList();
-        return ResponseEntityService.returnResponse(dtos, "Villes");
+        return ResponseEntity.ok(List.of(dtoList, "Villes"));
     }
 
     // GET POPULATION
-    @GetMapping("/population/min/{min}")
-    public ResponseEntity<?> findByMin(@PathVariable int min) {
-        List<VilleDto> dtos = villeRepository.findByNbHabitantsGreaterThanOrderByNbHabitantsDesc(min)
+    @GetMapping("/population/min")
+    public ResponseEntity<?> findByMin(@RequestParam int min) throws FunctionalException {
+        List<VilleDto> dtoList = villeService.getByNbHabitantsMin(min)
                 .stream().map(villeMapper::toDto).toList();
-        return ResponseEntityService.returnResponse(dtos, "Villes");
+        return ResponseEntity.ok(List.of(dtoList, "Villes"));
     }
 
     @GetMapping("/population/range")
-    public ResponseEntity<?> findByRange(@RequestParam int min, @RequestParam int max) {
-        List<Ville> villes = villeRepository.findByNbHabitantsBetweenOrderByNbHabitantsDesc(min, max);
+    public ResponseEntity<?> findByRange(@RequestParam int min, @RequestParam int max) throws FunctionalException {
+        List<Ville> villes = villeService.getByNbHabitantsRange(min, max);
         List<VilleDto> dtoList = villes.stream()
                 .map(villeMapper::toDto)
                 .toList();
-
-        if (!dtoList.isEmpty()) {
-            return ResponseEntity.ok(dtoList);
-        } else {
-            return ResponseEntity.status(404).body("Aucune ville trouvée avec ces critères");
-        }
+        return ResponseEntity.ok(dtoList);
     }
 
     //  GET DEPARTMENT
-    @GetMapping("/departement/{dptId}/population/min/{min}")
-    public ResponseEntity<?> findByDptMin(@PathVariable int dptId, @PathVariable int min) {
-        List<Ville> villes = villeRepository.findByDepartementIdAndNbHabitantsGreaterThanOrderByNbHabitantsDesc(dptId, min);
+    @GetMapping("/departement/code/{code}/population/min")
+    public ResponseEntity<?> findByDptMin(@PathVariable String code,@RequestParam int min) throws FunctionalException {
+        List<Ville> villes = villeService.getByDepartementAndNbHabitantsMin(code, min);
         List<VilleDto> dtoList = villes.stream()
                 .map(villeMapper::toDto)
                 .toList();
 
-        if (!dtoList.isEmpty()) {
-            return ResponseEntity.ok(dtoList);
-        } else {
-            return ResponseEntity.status(404).body("Aucune ville trouvée avec ces critères");
-        }
+        return ResponseEntity.ok(dtoList);
     }
 
-    @GetMapping("/departement/{dptId}/population/range")
-    public ResponseEntity<?> findByDptRange(@PathVariable int dptId,
+    @GetMapping("/departement/code/{code}/population/range")
+    public ResponseEntity<?> findByDptRange(@PathVariable String code,
                                             @RequestParam int min,
-                                            @RequestParam int max) {
-        List<Ville> villes = villeRepository.findByDepartementIdAndNbHabitantsBetweenOrderByNbHabitantsDesc(dptId, min, max);
+                                            @RequestParam int max) throws FunctionalException {
+        List<Ville> villes = villeService.getByDepartementAndNbHabitantsRange(code, min, max);
         List<VilleDto> dtoList = villes.stream()
                 .map(villeMapper::toDto)
                 .toList();
@@ -115,10 +102,11 @@ public class VilleControleur {
     }
 
     @GetMapping("/departement/{dptId}/top/{n}")
-    public ResponseEntity<?> findTopNVilles(@PathVariable int dptId, @PathVariable int n) {
-        List<VilleDto> dtos = villeService.findTopNVilles(dptId, n).stream()
-                .map(villeMapper::toDto).toList();
-        return ResponseEntityService.returnResponse(dtos, "Villes");
+    public ResponseEntity<?> findTopNVilles(@PathVariable int dptId, @PathVariable int n) throws FunctionalException {
+        List<VilleDto> dtos = villeService.getTopNVilles(dptId, n).stream()
+                .map(villeMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(Map.of("top", n, "villes", dtos));
     }
 
    // GET ALL PAGINATION
@@ -138,32 +126,35 @@ public class VilleControleur {
         }
     }
 
-
     @PostMapping
-    public ResponseEntity<?> insertVille(@Valid @RequestBody VilleDto dto) {
+    public ResponseEntity<?> insertVille(@Valid @RequestBody VilleDto dto) throws FunctionalException {
         Ville ville = villeMapper.toBean(dto);
-        villeRepository.save(ville);
-        return ResponseEntity.ok(Map.of("message", "Ville ajoutée avec succès", "ville", villeMapper.toDto(ville)));
+        List<VilleDto> dtoList = villeService.save(ville).stream().map(villeMapper::toDto).toList();
+        return ResponseEntity.ok(Map.of("message", "Ville ajoutée avec succès", "villes", dtoList));
     }
 
+
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateVille(@PathVariable int id, @Valid @RequestBody VilleDto dto) {
-        Ville ville = villeRepository.findById(id).orElse(null);
-        if (ville != null) {
-            Ville updated = villeMapper.toBean(dto);
-            updated.setId(id);
-            villeRepository.save(updated);
-            return ResponseEntity.ok(Map.of("message", "Ville modifiée avec succès", "ville", villeMapper.toDto(updated)));
-        }
-        return ResponseEntity.status(404).body("Ville introuvable");
+    public ResponseEntity<?> updateVille(@PathVariable int id, @Valid @RequestBody VilleDto dto) throws FunctionalException {
+        Ville updatedVille = villeMapper.toBean(dto);
+        updatedVille.setId(id);
+        List<Ville> updatedList = villeService.update(id, updatedVille);
+
+        List<VilleDto> dtoList = updatedList.stream().map(villeMapper::toDto).toList();
+        return ResponseEntity.ok(Map.of(
+                "message", "Ville modifiée avec succès",
+                "villes", dtoList
+        ));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteVille(@PathVariable int id) {
-        if (villeRepository.existsById(id)) {
-            villeRepository.deleteById(id);
-            return ResponseEntity.ok(Map.of("message", "Ville supprimée avec succès"));
-        }
-        return ResponseEntity.status(404).body("Ville introuvable");
+    public ResponseEntity<?> deleteVille(@PathVariable int id) throws FunctionalException {
+        List<Ville> updatedList = villeService.delete(id);
+
+        List<VilleDto> dtoList = updatedList.stream().map(villeMapper::toDto).toList();
+        return ResponseEntity.ok(Map.of(
+                "message", "Ville supprimée avec succès",
+                "villes", dtoList
+        ));
     }
 }
