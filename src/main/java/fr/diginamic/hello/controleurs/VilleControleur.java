@@ -19,7 +19,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/villes")
-public class VilleControleur {
+public class VilleControleur implements IVilleControllerDoc {
 
     @Autowired
     private VilleRepository villeRepository;
@@ -32,6 +32,7 @@ public class VilleControleur {
 
     // GET BASIQUES
     @GetMapping
+    @Override
     public List<VilleDto> getVilles() {
         return villeRepository.findAll().stream()
                 .map(villeMapper::toDto)
@@ -39,18 +40,21 @@ public class VilleControleur {
     }
 
     @GetMapping("/id/{id}")
+    @Override
     public ResponseEntity<?> getVilleById(@PathVariable int id) throws FunctionalException {
         Ville ville = villeService.getById(id);
         return ResponseEntity.ok(villeMapper.toDto(ville));
     }
 
     @GetMapping("/nom/{nom}")
+    @Override
     public ResponseEntity<?> getVilleByNom(@PathVariable String nom) throws FunctionalException {
         Ville ville = villeService.getByNom(nom);
         return ResponseEntity.ok(villeMapper.toDto(ville));
     }
 
     @GetMapping("/prefix/{prefix}")
+    @Override
     public ResponseEntity<?> findByPrefix(@PathVariable String prefix) throws FunctionalException {
         List<VilleDto> dtoList = villeService.getByPrefix(prefix)
                 .stream().map(villeMapper::toDto).toList();
@@ -59,6 +63,7 @@ public class VilleControleur {
 
     // GET POPULATION
     @GetMapping("/population/min")
+    @Override
     public ResponseEntity<?> findByMin(@RequestParam int min) throws FunctionalException {
         List<VilleDto> dtoList = villeService.getByNbHabitantsMin(min)
                 .stream().map(villeMapper::toDto).toList();
@@ -66,6 +71,7 @@ public class VilleControleur {
     }
 
     @GetMapping("/population/range")
+    @Override
     public ResponseEntity<?> findByRange(@RequestParam int min, @RequestParam int max) throws FunctionalException {
         List<Ville> villes = villeService.getByNbHabitantsRange(min, max);
         List<VilleDto> dtoList = villes.stream()
@@ -76,7 +82,8 @@ public class VilleControleur {
 
     //  GET DEPARTMENT
     @GetMapping("/departement/code/{code}/population/min")
-    public ResponseEntity<?> findByDptMin(@PathVariable String code,@RequestParam int min) throws FunctionalException {
+    @Override
+    public ResponseEntity<?> findByDptMin(@PathVariable String code, @RequestParam int min) throws FunctionalException {
         List<Ville> villes = villeService.getByDepartementAndNbHabitantsMin(code, min);
         List<VilleDto> dtoList = villes.stream()
                 .map(villeMapper::toDto)
@@ -86,6 +93,7 @@ public class VilleControleur {
     }
 
     @GetMapping("/departement/code/{code}/population/range")
+    @Override
     public ResponseEntity<?> findByDptRange(@PathVariable String code,
                                             @RequestParam int min,
                                             @RequestParam int max) throws FunctionalException {
@@ -102,6 +110,7 @@ public class VilleControleur {
     }
 
     @GetMapping("/departement/{dptId}/top/{n}")
+    @Override
     public ResponseEntity<?> findTopNVilles(@PathVariable int dptId, @PathVariable int n) throws FunctionalException {
         List<VilleDto> dtos = villeService.getTopNVilles(dptId, n).stream()
                 .map(villeMapper::toDto)
@@ -110,10 +119,11 @@ public class VilleControleur {
     }
 
    // GET ALL PAGINATION
-    @GetMapping("/page")
-    public ResponseEntity<?> getPaginatedVilles(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+   @GetMapping("/page")
+   @Override
+   public ResponseEntity<?> getPaginatedVilles(
+           @RequestParam(defaultValue = "0") int page,
+           @RequestParam(defaultValue = "10") int size) {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Ville> resultPage = villeRepository.findAll(pageable);
@@ -127,6 +137,7 @@ public class VilleControleur {
     }
 
     @PostMapping
+    @Override
     public ResponseEntity<?> insertVille(@Valid @RequestBody VilleDto dto) throws FunctionalException {
         Ville ville = villeMapper.toBean(dto);
         List<VilleDto> dtoList = villeService.save(ville).stream().map(villeMapper::toDto).toList();
@@ -135,6 +146,7 @@ public class VilleControleur {
 
 
     @PutMapping("/{id}")
+    @Override
     public ResponseEntity<?> updateVille(@PathVariable int id, @Valid @RequestBody VilleDto dto) throws FunctionalException {
         Ville updatedVille = villeMapper.toBean(dto);
         updatedVille.setId(id);
@@ -148,6 +160,7 @@ public class VilleControleur {
     }
 
     @DeleteMapping("/{id}")
+    @Override
     public ResponseEntity<?> deleteVille(@PathVariable int id) throws FunctionalException {
         List<Ville> updatedList = villeService.delete(id);
 
