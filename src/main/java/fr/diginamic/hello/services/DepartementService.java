@@ -9,32 +9,37 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class DepartementService {
+public class DepartementService implements IDepartementService {
 
     @Autowired
     private DepartementRepository dptRepository;
 
+    @Override
     public Departement getById(int id) throws FunctionalException {
         return dptRepository.findById(id)
                 .orElseThrow(() -> new FunctionalException("Département introuvable"));
     }
 
+    @Override
     public Departement getByNom(String nom) throws FunctionalException {
         return dptRepository.findByNom(nom)
                 .orElseThrow(() -> new FunctionalException("Département introuvable"));
     }
 
+    @Override
     public Departement getByCode(String code) throws FunctionalException {
         return dptRepository.findByCode(code)
                 .orElseThrow(() -> new FunctionalException("Département introuvable"));
     }
 
+    @Override
     public List<Departement> insertDpt(Departement dpt) throws FunctionalException {
         validateDepartement(dpt);
         dptRepository.save(dpt);
         return dptRepository.findAll();
     }
 
+    @Override
     public List<Departement> updateDpt(int id, Departement dpt) throws FunctionalException {
         Departement dptAModifier = dptRepository.findById(id).orElseThrow(() -> new FunctionalException("Département introuvable"));
         validateDepartement(dptAModifier);
@@ -45,6 +50,7 @@ public class DepartementService {
         return dptRepository.findAll();
     }
 
+    @Override
     public List<Departement> deleteDpt(int id) throws FunctionalException {
         dptRepository.findById(id).orElseThrow(() -> new FunctionalException("Département introuvable"));
         dptRepository.deleteById(id);

@@ -7,11 +7,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class VilleMapper {
+public class VilleMapper implements IVilleMapper {
 
     @Autowired
     private DepartementRepository departementRepository;
 
+    @Override
     public VilleDto toDto(Ville ville) {
         VilleDto dto = new VilleDto();
         dto.setNom(ville.getNom());
@@ -21,6 +22,7 @@ public class VilleMapper {
         return dto;
     }
 
+    @Override
     public Ville toBean(VilleDto dto) {
         Ville ville = new Ville();
         ville.setNom(dto.getNom());

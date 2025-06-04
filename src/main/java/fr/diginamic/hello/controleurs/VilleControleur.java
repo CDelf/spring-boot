@@ -1,11 +1,14 @@
 package fr.diginamic.hello.controleurs;
 
+import com.itextpdf.text.DocumentException;
+import fr.diginamic.hello.dtos.IVilleMapper;
 import fr.diginamic.hello.dtos.VilleDto;
-import fr.diginamic.hello.dtos.VilleMapper;
 import fr.diginamic.hello.exceptions.FunctionalException;
 import fr.diginamic.hello.models.Ville;
 import fr.diginamic.hello.repos.VilleRepository;
-import fr.diginamic.hello.services.VilleService;
+import fr.diginamic.hello.services.IVilleService;
+import fr.diginamic.hello.utils.CsvUtil;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -14,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -25,17 +29,17 @@ public class VilleControleur implements IVilleControllerDoc {
     private VilleRepository villeRepository;
 
     @Autowired
-    private VilleService villeService;
+    private IVilleService villeService;
 
     @Autowired
-    private VilleMapper villeMapper;
+    private IVilleMapper IVilleMapper;
 
     // GET BASIQUES
     @GetMapping
     @Override
     public List<VilleDto> getVilles() {
         return villeRepository.findAll().stream()
-                .map(villeMapper::toDto)
+                .map(IVilleMapper::toDto)
                 .toList();
     }
 
@@ -43,21 +47,21 @@ public class VilleControleur implements IVilleControllerDoc {
     @Override
     public ResponseEntity<?> getVilleById(@PathVariable int id) throws FunctionalException {
         Ville ville = villeService.getById(id);
-        return ResponseEntity.ok(villeMapper.toDto(ville));
+        return ResponseEntity.ok(IVilleMapper.toDto(ville));
     }
 
     @GetMapping("/nom/{nom}")
     @Override
     public ResponseEntity<?> getVilleByNom(@PathVariable String nom) throws FunctionalException {
         Ville ville = villeService.getByNom(nom);
-        return ResponseEntity.ok(villeMapper.toDto(ville));
+        return ResponseEntity.ok(IVilleMapper.toDto(ville));
     }
 
     @GetMapping("/prefix/{prefix}")
     @Override
     public ResponseEntity<?> findByPrefix(@PathVariable String prefix) throws FunctionalException {
         List<VilleDto> dtoList = villeService.getByPrefix(prefix)
-                .stream().map(villeMapper::toDto).toList();
+                .stream().map(IVilleMapper::toDto).toList();
         return ResponseEntity.ok(List.of(dtoList, "Villes"));
     }
 
@@ -66,7 +70,7 @@ public class VilleControleur implements IVilleControllerDoc {
     @Override
     public ResponseEntity<?> findByMin(@RequestParam int min) throws FunctionalException {
         List<VilleDto> dtoList = villeService.getByNbHabitantsMin(min)
-                .stream().map(villeMapper::toDto).toList();
+                .stream().map(IVilleMapper::toDto).toList();
         return ResponseEntity.ok(List.of(dtoList, "Villes"));
     }
 
@@ -75,7 +79,7 @@ public class VilleControleur implements IVilleControllerDoc {
     public ResponseEntity<?> findByRange(@RequestParam int min, @RequestParam int max) throws FunctionalException {
         List<Ville> villes = villeService.getByNbHabitantsRange(min, max);
         List<VilleDto> dtoList = villes.stream()
-                .map(villeMapper::toDto)
+                .map(IVilleMapper::toDto)
                 .toList();
         return ResponseEntity.ok(dtoList);
     }
@@ -86,7 +90,7 @@ public class VilleControleur implements IVilleControllerDoc {
     public ResponseEntity<?> findByDptMin(@PathVariable String code, @RequestParam int min) throws FunctionalException {
         List<Ville> villes = villeService.getByDepartementAndNbHabitantsMin(code, min);
         List<VilleDto> dtoList = villes.stream()
-                .map(villeMapper::toDto)
+                .map(IVilleMapper::toDto)
                 .toList();
 
         return ResponseEntity.ok(dtoList);
@@ -99,7 +103,7 @@ public class VilleControleur implements IVilleControllerDoc {
                                             @RequestParam int max) throws FunctionalException {
         List<Ville> villes = villeService.getByDepartementAndNbHabitantsRange(code, min, max);
         List<VilleDto> dtoList = villes.stream()
-                .map(villeMapper::toDto)
+                .map(IVilleMapper::toDto)
                 .toList();
 
         if (!dtoList.isEmpty()) {
@@ -113,7 +117,7 @@ public class VilleControleur implements IVilleControllerDoc {
     @Override
     public ResponseEntity<?> findTopNVilles(@PathVariable int dptId, @PathVariable int n) throws FunctionalException {
         List<VilleDto> dtos = villeService.getTopNVilles(dptId, n).stream()
-                .map(villeMapper::toDto)
+                .map(IVilleMapper::toDto)
                 .toList();
         return ResponseEntity.ok(Map.of("top", n, "villes", dtos));
     }
@@ -129,18 +133,25 @@ public class VilleControleur implements IVilleControllerDoc {
         Page<Ville> resultPage = villeRepository.findAll(pageable);
 
         if (resultPage.hasContent()) {
-            Page<VilleDto> dtoPage = resultPage.map(villeMapper::toDto);
+            Page<VilleDto> dtoPage = resultPage.map(IVilleMapper::toDto);
             return ResponseEntity.ok(dtoPage);
         } else {
             return ResponseEntity.status(404).body("Aucune ville trouvée à cette page");
         }
     }
 
+    // GENERATION CSV
+    @GetMapping("/{min}/csv")
+    public void exportCsv(@PathVariable int min, HttpServletResponse response) throws IOException, DocumentException, FunctionalException {
+        List<Ville> villes = villeService.getByNbHabitantsMin(min);
+        CsvUtil.exportVillesCsv(response, villes);
+    }
+
     @PostMapping
     @Override
     public ResponseEntity<?> insertVille(@Valid @RequestBody VilleDto dto) throws FunctionalException {
-        Ville ville = villeMapper.toBean(dto);
-        List<VilleDto> dtoList = villeService.save(ville).stream().map(villeMapper::toDto).toList();
+        Ville ville = IVilleMapper.toBean(dto);
+        List<VilleDto> dtoList = villeService.save(ville).stream().map(IVilleMapper::toDto).toList();
         return ResponseEntity.ok(Map.of("message", "Ville ajoutée avec succès", "villes", dtoList));
     }
 
@@ -148,11 +159,11 @@ public class VilleControleur implements IVilleControllerDoc {
     @PutMapping("/{id}")
     @Override
     public ResponseEntity<?> updateVille(@PathVariable int id, @Valid @RequestBody VilleDto dto) throws FunctionalException {
-        Ville updatedVille = villeMapper.toBean(dto);
+        Ville updatedVille = IVilleMapper.toBean(dto);
         updatedVille.setId(id);
         List<Ville> updatedList = villeService.update(id, updatedVille);
 
-        List<VilleDto> dtoList = updatedList.stream().map(villeMapper::toDto).toList();
+        List<VilleDto> dtoList = updatedList.stream().map(IVilleMapper::toDto).toList();
         return ResponseEntity.ok(Map.of(
                 "message", "Ville modifiée avec succès",
                 "villes", dtoList
@@ -164,7 +175,7 @@ public class VilleControleur implements IVilleControllerDoc {
     public ResponseEntity<?> deleteVille(@PathVariable int id) throws FunctionalException {
         List<Ville> updatedList = villeService.delete(id);
 
-        List<VilleDto> dtoList = updatedList.stream().map(villeMapper::toDto).toList();
+        List<VilleDto> dtoList = updatedList.stream().map(IVilleMapper::toDto).toList();
         return ResponseEntity.ok(Map.of(
                 "message", "Ville supprimée avec succès",
                 "villes", dtoList

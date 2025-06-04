@@ -26,6 +26,9 @@ public interface VilleRepository extends JpaRepository<Ville, Integer> {
     // Villes avec population entre min et max
     List<Ville> findByNbHabitantsBetweenOrderByNbHabitantsDesc(int min, int max);
 
+    // Villes d'un département
+    List<Ville> findByDepartementCode(String code);
+
     // Villes d'un département, population > min
     List<Ville> findByDepartementCodeAndNbHabitantsGreaterThanOrderByNbHabitantsDesc(String code, int min);
 

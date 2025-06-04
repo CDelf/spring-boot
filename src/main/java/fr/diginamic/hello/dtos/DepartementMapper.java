@@ -5,8 +5,9 @@ import fr.diginamic.hello.models.Ville;
 import org.springframework.stereotype.Component;
 
 @Component
-public class DepartementMapper {
+public class DepartementMapper implements IDepartementMapper {
 
+    @Override
     public DepartementDto toDto(Departement dpt) {
         DepartementDto dto = new DepartementDto();
         dto.setCode(dpt.getCode());
@@ -20,6 +21,7 @@ public class DepartementMapper {
         return dto;
     }
 
+    @Override
     public Departement toBean(DepartementDto dto) {
         Departement dpt = new Departement();
         dpt.setCode(dto.getCode());
