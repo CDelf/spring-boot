@@ -114,6 +114,7 @@ public class VilleService implements IVilleService {
     @Override
     public List<Ville> delete(int id) throws FunctionalException {
         villeRepo.findById(id).orElseThrow(() -> new FunctionalException("Ville inexistante"));
+        villeRepo.deleteById(id);
         return villeRepo.findAll();
     }
 

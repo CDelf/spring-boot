@@ -20,7 +20,7 @@ public class Departement {
     private String nom;
 
     @NotBlank(message = "Le numéro de département est obligatoire")
-    @Min(value = 10, message = "Le code département doit avoir au moins 2 caractères")
+    @Min(value = 2, message = "Le code département doit avoir au moins 2 caractères")
     @Column(nullable = false, unique = true)
     private String code;
 
